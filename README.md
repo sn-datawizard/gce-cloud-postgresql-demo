@@ -15,7 +15,7 @@ Note that Google offers a Free Trial. After the Free Trial period some GCP servi
 
 - Ubuntu (WSL) is used for development
 - Docker on Ubuntu (https://docs.docker.com/engine/install/ubuntu/)
-- Python (https://www.python.org/downloads/) | (https://www.python.org/downloads/windows/)
+- Python
 - Access to use GCP services as 'Owner' (Full Account/Free Trial)
 - Cloud Postgresql database (https://cloud.google.com/sql/docs/postgres/create-instance)
 - gcloud CLI (https://cloud.google.com/sdk/docs/install)
