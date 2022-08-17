@@ -1,5 +1,5 @@
 # gce-cloud-postgresql-demo
-![image](https://user-images.githubusercontent.com/77932366/184556016-d989511f-28f5-4e45-ad1b-65fa3eb5f2ed.png)
+![image](https://user-images.githubusercontent.com/77932366/184716028-b883dc68-ce6f-4cc5-b2ba-2b64294a5ae2.png)
 
 ## Introduction
 
@@ -14,9 +14,10 @@ Note that Google offers a Free Trial. After the Free Trial period some GCP servi
 ## Prerequisites
 
 - Ubuntu (WSL) is used for development
-- Python (https://www.python.org/downloads/) | (https://www.python.org/downloads/windows/)
 - Docker on Ubuntu (https://docs.docker.com/engine/install/ubuntu/)
+- Python (https://www.python.org/downloads/) | (https://www.python.org/downloads/windows/)
 - Access to use GCP services as 'Owner' (Full Account/Free Trial)
+- Cloud Postgresql database (https://cloud.google.com/sql/docs/postgres/create-instance)
 - gcloud CLI (https://cloud.google.com/sdk/docs/install)
 - Local directory where Python script, dataset, Dockerfile & service account key file is located
 
@@ -41,7 +42,7 @@ Open Google Cloud Shell in GCP project:
 ![image](https://user-images.githubusercontent.com/77932366/184651692-53952991-363b-4eee-8899-575f23985061.png)
 
 Execute the follwing commands to push first image to Container Registry:
-```
+```python
 docker pull busybox
 docker tag busybox gcr.io/my-project/busybox
 docker push gcr.io/my-project/busybox
@@ -58,4 +59,72 @@ In order to push an image the 'Storage Admin' & 'Storage Legacy Bucket Writer' p
 ![image](https://user-images.githubusercontent.com/77932366/184665496-d12398c2-c1ef-4e12-bed0-836510fa7252.png)
 
 ## Build image locally & push to Container Registry
-### gcloud CLI & log in Docker with .json keyfile
+### Build Docker image
+
+```python
+docker build -t eu.gcr.io/sns-kafka-gcp/pyapp:v001 .
+```
+
+### Activate service account in gcloud CLI & Log into Docker with .json keyfile
+1. Navigate to local directory where files are stored
+2. Open terminal & execute the following commands
+```python
+gcloud auth list
+```
+The output should display the currently logged in account.
+
+3. Switch to service account & configure Docker
+```python
+gcloud auth activate-service-account ACCOUNT --key-file=KEY-FILE
+# gcloud auth activate-service-account saccount-sns-kafka-gcp@sns-kafka-gcp.iam.gserviceaccount.com --key-file=./sns-kafka-gcp-aa1cecbe96ab.json
+
+gcloud auth configure-docker
+```
+4. Authenticate with Docker
+
+The hostname is either 'gcr.io, us.gcr.io, eu.gcr.io, or asia.gcr.io'
+```python
+docker login -u _json_key -p "$(cat keyfile.json)" https://HOSTNAME
+# cat sns-kafka-gcp-aa1cecbe96ab.json | docker login -u _json_key --password-stdin https://eu.gcr.io
+```
+
+### Push built image to Container Registry
+```python
+docker push eu.gcr.io/sns-kafka-gcp/pyapp:v001
+```
+
+### Deploy image to Google Compute Engine (use service account in configuration of VM)
+An easy & convenient way to run a python script in GCP is to use Google Compute Engine. Basically this approach hosts the python script on a virtual computer & executes the scipt as soons as it turns on.
+
+To schedule the scipt e.g. to run daily there is an option to schedule the instance (https://cloud.google.com/compute/docs/instances/schedule-instance-start-stop).
+
+![image](https://user-images.githubusercontent.com/77932366/185045337-8a1ceac1-9dfa-4cbd-900d-e0da808210e0.png)
+
+## Dockerfile & script.py
+### Dockerfile
+The Dockerfile executes the following command-line instructions:
+```python
+FROM python:3.8-bullseye # Pull python image
+
+RUN apt update -y # Execute apt update command, using -y to prevent the execution to be stuck
+RUN apt install -y python3-pip # Install pip for python packages
+
+RUN pip3 install pandas # For reading .csv file & create pandas dataframe
+RUN pip3 install psycopg2 # For set connection to Postgresql database
+RUN pip3 install sqlalchemy # For creating engine to insert data into Postgresql database table
+
+WORKDIR /app # Directory in the container
+
+ADD script.py /app # Copy python script to container directory
+ADD data.csv /app # Copy .csv file to container directory
+
+CMD ["python3", "./script.py"] # Specifies what command to run within the container
+```
+
+### script.py
+The sample python script performs:
+1. Import necessary python packages
+2. Establish connection to Postgresql database
+3. Create table with given schema
+4. Read .csv file & convert to pandas dataframe
+5. Insert data into created table
