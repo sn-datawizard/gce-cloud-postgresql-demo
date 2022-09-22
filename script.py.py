@@ -2,7 +2,7 @@ import pandas as pd
 import psycopg2
 import sqlalchemy
 
-con = psycopg2.connect(host='34.159.54.139', database="postgres", user="postgres", password="admin")
+con = psycopg2.connect(host='34.159.54.139', database="postgres", user="*", password="*") #Sensitive information not visible
 print(con)
 cursor = con.cursor()
 try:
